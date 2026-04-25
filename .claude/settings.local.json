@@ -10,7 +10,12 @@
       "Bash(node --check routes/auth.js)",
       "Bash(node --check routes/usuarios.js)",
       "Bash(node --check database.js)",
-      "Bash(node --check public/login.js)"
+      "Bash(node --check public/login.js)",
+      "Bash(mkdir -p src/config)",
+      "Bash(npm uninstall *)",
+      "Bash(node --check src/config/database.js)",
+      "Bash(node --check routes/clientes.js)",
+      "Bash(node --check routes/contatos.js)"
     ]
   }
 }

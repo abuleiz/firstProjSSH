@@ -1,20 +1,22 @@
+require('dotenv').config();
 const express  = require('express');
 const session  = require('express-session');
 const path     = require('path');
 
-const clientesRouter  = require('./routes/clientes');
-const contatosRouter  = require('./routes/contatos');
-const authRouter      = require('./routes/auth');
-const usuariosRouter  = require('./routes/usuarios');
-const { requireAuth } = require('./middleware/auth');
+const { poolPromise }     = require('./src/config/database');
+const clientesRouter      = require('./routes/clientes');
+const contatosRouter      = require('./routes/contatos');
+const authRouter          = require('./routes/auth');
+const usuariosRouter      = require('./routes/usuarios');
+const { requireAuth }     = require('./middleware/auth');
 
 const app  = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
 app.use(session({
-  secret:            'cadastro-clientes-secret-key',
+  secret:            process.env.SESSION_SECRET || 'cadastro-clientes-fallback-secret',
   resave:            false,
   saveUninitialized: false,
   cookie: {
@@ -25,14 +27,18 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rota pública: autenticação
+// Rota pública
 app.use('/api/auth', authRouter);
 
-// Rotas protegidas: exigem sessão ativa
+// Rotas protegidas
 app.use('/api/clientes', requireAuth, clientesRouter);
 app.use('/api/contatos', requireAuth, contatosRouter);
-app.use('/api/usuarios', usuariosRouter); // requireAdmin está dentro do próprio router
+app.use('/api/usuarios', usuariosRouter); // requireAdmin está dentro do router
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
-});
+// Aguarda a conexão com o banco antes de abrir a porta
+poolPromise
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Servidor rodando em http://localhost:${PORT}`);
+    });
+  });

@@ -1,64 +1,121 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../database');
+const router  = express.Router();
+const { poolPromise, sql } = require('../src/config/database');
 
 // Lista todos os clientes
-router.get('/', (req, res) => {
-  const clientes = db.prepare('SELECT * FROM clientes ORDER BY nome').all();
-  res.json(clientes);
+router.get('/', async (req, res) => {
+  try {
+    const pool   = await poolPromise;
+    const result = await pool.request()
+      .query('SELECT * FROM clientes ORDER BY nome');
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao buscar clientes' });
+  }
 });
 
-// Busca cliente por id junto com seus contatos
-router.get('/:id', (req, res) => {
-  const cliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(req.params.id);
-  if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado' });
+// Busca cliente por id com seus contatos
+router.get('/:id', async (req, res) => {
+  try {
+    const pool = await poolPromise;
 
-  cliente.contatos = db.prepare('SELECT * FROM contatos WHERE cliente_id = ?').all(req.params.id);
-  res.json(cliente);
+    const resCliente = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('SELECT * FROM clientes WHERE id = @id');
+
+    const cliente = resCliente.recordset[0];
+    if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado' });
+
+    const resContatos = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('SELECT * FROM contatos WHERE cliente_id = @id');
+
+    cliente.contatos = resContatos.recordset;
+    res.json(cliente);
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao buscar cliente' });
+  }
 });
 
 // Cria novo cliente
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { nome, cpf, email, data_nascimento, endereco } = req.body;
 
   if (!nome || !cpf) return res.status(400).json({ erro: 'Nome e CPF são obrigatórios' });
 
   try {
-    const result = db.prepare(
-      'INSERT INTO clientes (nome, cpf, email, data_nascimento, endereco) VALUES (?, ?, ?, ?, ?)'
-    ).run(nome, cpf, email || null, data_nascimento || null, endereco || null);
+    const pool   = await poolPromise;
+    const result = await pool.request()
+      .input('nome',            sql.NVarChar, nome)
+      .input('cpf',             sql.NVarChar, cpf)
+      .input('email',           sql.NVarChar, email           || null)
+      .input('data_nascimento', sql.NVarChar, data_nascimento || null)
+      .input('endereco',        sql.NVarChar, endereco        || null)
+      .query(`
+        INSERT INTO clientes (nome, cpf, email, data_nascimento, endereco)
+        OUTPUT INSERTED.id
+        VALUES (@nome, @cpf, @email, @data_nascimento, @endereco)
+      `);
 
-    res.status(201).json({ id: result.lastInsertRowid, nome, cpf, email, data_nascimento, endereco });
+    const id = result.recordset[0].id;
+    res.status(201).json({ id, nome, cpf, email, data_nascimento, endereco });
   } catch (err) {
-    if (err.message.includes('UNIQUE')) return res.status(400).json({ erro: 'CPF já cadastrado' });
+    if (err.number === 2627 || err.number === 2601) {
+      return res.status(400).json({ erro: 'CPF já cadastrado' });
+    }
     res.status(500).json({ erro: 'Erro ao salvar cliente' });
   }
 });
 
 // Atualiza cliente existente
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { nome, cpf, email, data_nascimento, endereco } = req.body;
 
   if (!nome || !cpf) return res.status(400).json({ erro: 'Nome e CPF são obrigatórios' });
 
   try {
-    const result = db.prepare(
-      'UPDATE clientes SET nome=?, cpf=?, email=?, data_nascimento=?, endereco=? WHERE id=?'
-    ).run(nome, cpf, email || null, data_nascimento || null, endereco || null, req.params.id);
+    const pool   = await poolPromise;
+    const result = await pool.request()
+      .input('id',              sql.Int,      req.params.id)
+      .input('nome',            sql.NVarChar, nome)
+      .input('cpf',             sql.NVarChar, cpf)
+      .input('email',           sql.NVarChar, email           || null)
+      .input('data_nascimento', sql.NVarChar, data_nascimento || null)
+      .input('endereco',        sql.NVarChar, endereco        || null)
+      .query(`
+        UPDATE clientes
+        SET nome=@nome, cpf=@cpf, email=@email,
+            data_nascimento=@data_nascimento, endereco=@endereco
+        WHERE id=@id
+      `);
 
-    if (result.changes === 0) return res.status(404).json({ erro: 'Cliente não encontrado' });
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ erro: 'Cliente não encontrado' });
+    }
     res.json({ id: Number(req.params.id), nome, cpf, email, data_nascimento, endereco });
   } catch (err) {
-    if (err.message.includes('UNIQUE')) return res.status(400).json({ erro: 'CPF já cadastrado' });
+    if (err.number === 2627 || err.number === 2601) {
+      return res.status(400).json({ erro: 'CPF já cadastrado' });
+    }
     res.status(500).json({ erro: 'Erro ao atualizar cliente' });
   }
 });
 
 // Remove cliente (contatos removidos em cascata pelo banco)
-router.delete('/:id', (req, res) => {
-  const result = db.prepare('DELETE FROM clientes WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ erro: 'Cliente não encontrado' });
-  res.json({ mensagem: 'Cliente removido com sucesso' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const pool   = await poolPromise;
+    const result = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('DELETE FROM clientes WHERE id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ erro: 'Cliente não encontrado' });
+    }
+    res.json({ mensagem: 'Cliente removido com sucesso' });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao remover cliente' });
+  }
 });
 
 module.exports = router;
