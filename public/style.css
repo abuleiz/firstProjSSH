@@ -1,0 +1,256 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f0f2f5;
+  color: #333;
+}
+
+header {
+  background: #1a56a0;
+  color: white;
+  padding: 1rem 2rem;
+}
+
+header h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+main {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  color: #1a56a0;
+}
+
+h3 {
+  font-size: 1.05rem;
+  color: #444;
+  margin-bottom: 0.75rem;
+}
+
+/* Cabeçalho com título + botão lado a lado */
+.cabecalho-secao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+/* Tabelas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+th {
+  background: #1a56a0;
+  color: white;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background: #f7f9fc;
+}
+
+/* Botões */
+button {
+  cursor: pointer;
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #1a56a0;
+  color: white;
+  transition: background 0.15s;
+}
+
+button:hover {
+  background: #144080;
+}
+
+button.btn-secundario {
+  background: #8a8a8a;
+}
+
+button.btn-secundario:hover {
+  background: #6a6a6a;
+}
+
+button.btn-editar {
+  background: #e07b00;
+}
+
+button.btn-editar:hover {
+  background: #b86400;
+}
+
+button.btn-deletar {
+  background: #c0392b;
+  margin-left: 0.3rem;
+}
+
+button.btn-deletar:hover {
+  background: #992d22;
+}
+
+button.btn-voltar {
+  background: none;
+  color: #1a56a0;
+  padding: 0;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+}
+
+button.btn-voltar:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+/* Formulários */
+form {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.campo {
+  margin-bottom: 1rem;
+}
+
+.campo label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+  color: #555;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  outline: none;
+  border-color: #1a56a0;
+  box-shadow: 0 0 0 2px rgba(26,86,160,0.15);
+}
+
+.campo input.invalido {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 2px rgba(192,57,43,0.15);
+}
+
+.erro-campo {
+  display: block;
+  color: #c0392b;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+/* Formulário de contato com campos em linha */
+.campos-inline {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.campos-inline .campo {
+  flex: 1;
+  min-width: 140px;
+  margin-bottom: 0;
+}
+
+.campo-botao {
+  flex: 0 0 auto !important;
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-end;
+  padding-bottom: 1px;
+}
+
+.acoes-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Card de informações do cliente */
+#info-cliente {
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin-bottom: 1.5rem;
+}
+
+#info-cliente h2 {
+  margin-bottom: 0.5rem;
+}
+
+#info-cliente p {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0.2rem 0;
+}
+
+/* Notificação flutuante */
+.mensagem {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.7rem 1.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  z-index: 999;
+  white-space: nowrap;
+  animation: surgir 0.25s ease;
+}
+
+.mensagem.sucesso { background: #27ae60; color: white; }
+.mensagem.erro    { background: #c0392b; color: white; }
+
+@keyframes surgir {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.oculto { display: none !important; }
