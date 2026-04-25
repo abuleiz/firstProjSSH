@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(timeout 4 node server.js)"
+      "Bash(timeout 4 node server.js)",
+      "Bash(timeout 3 node server.js)",
+      "Bash(node --check public/app.js)",
+      "Bash(node --check server.js)",
+      "Bash(node --check middleware/auth.js)",
+      "Bash(node --check routes/auth.js)",
+      "Bash(node --check routes/usuarios.js)",
+      "Bash(node --check database.js)",
+      "Bash(node --check public/login.js)"
     ]
   }
 }

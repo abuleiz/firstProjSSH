@@ -1,9 +1,85 @@
-// Guarda o cliente aberto na tela de detalhe
-let clienteAtual = null;
+// ================================================
+// Estado da aplicação
+// ================================================
+let clienteAtual  = null;
+let usuarioLogado = null;
 
 // ================================================
-// Navegação entre seções
+// Inicialização e autenticação
 // ================================================
+
+async function inicializar() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) {
+    window.location.href = '/login.html';
+    return;
+  }
+  usuarioLogado = await res.json();
+  configurarInterface();
+  navegarPara('dashboard');
+}
+
+function configurarInterface() {
+  document.getElementById('sidebar-nome-usuario').textContent = usuarioLogado.nome;
+
+  const badge = document.getElementById('sidebar-nivel-usuario');
+  badge.textContent  = usuarioLogado.nivel === 'admin' ? 'Admin' : 'Usuário';
+  badge.className    = `badge-nivel ${usuarioLogado.nivel}`;
+
+  if (usuarioLogado.nivel === 'admin') {
+    document.getElementById('nav-usuarios').classList.remove('oculto');
+  }
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+}
+
+// Wrapper que redireciona para login caso a sessão tenha expirado (401)
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    window.location.href = '/login.html';
+    return null;
+  }
+  return res;
+}
+
+// ================================================
+// Navegação: sidebar e seções
+// ================================================
+
+function navegarPara(pagina) {
+  document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('ativo'));
+  const navEl = document.getElementById(`nav-${pagina}`);
+  if (navEl) navEl.classList.add('ativo');
+
+  const titulos = {
+    dashboard: 'Dashboard',
+    clientes:  'Cadastro de Clientes',
+    usuarios:  'Usuários',
+  };
+  document.getElementById('titulo-pagina').textContent = titulos[pagina] || '';
+
+  if (pagina === 'dashboard') {
+    alternarSecao('secao-dashboard');
+    carregarDashboard();
+  } else if (pagina === 'clientes') {
+    alternarSecao('secao-lista');
+    carregarClientes();
+  } else if (pagina === 'usuarios') {
+    alternarSecao('secao-usuarios');
+    carregarUsuarios();
+  }
+}
+
+async function carregarDashboard() {
+  const res = await apiFetch('/api/clientes');
+  if (!res) return;
+  const clientes = await res.json();
+  document.getElementById('total-clientes').textContent = clientes.length;
+}
 
 function mostrarLista() {
   alternarSecao('secao-lista');
@@ -18,12 +94,12 @@ function mostrarFormulario(cliente = null) {
 
   if (cliente) {
     document.getElementById('titulo-formulario').textContent = 'Editar Cliente';
-    document.getElementById('cliente-id').value = cliente.id;
-    document.getElementById('nome').value = cliente.nome || '';
-    document.getElementById('cpf').value = formatarCPF(cliente.cpf);
-    document.getElementById('email').value = cliente.email || '';
+    document.getElementById('cliente-id').value   = cliente.id;
+    document.getElementById('nome').value         = cliente.nome || '';
+    document.getElementById('cpf').value          = formatarCPF(cliente.cpf);
+    document.getElementById('email').value        = cliente.email || '';
     document.getElementById('data-nascimento').value = cliente.data_nascimento || '';
-    document.getElementById('endereco').value = cliente.endereco || '';
+    document.getElementById('endereco').value     = cliente.endereco || '';
   } else {
     document.getElementById('titulo-formulario').textContent = 'Novo Cliente';
   }
@@ -37,7 +113,8 @@ function mostrarDetalhe(id) {
 }
 
 function alternarSecao(idAtiva) {
-  ['secao-lista', 'secao-formulario', 'secao-detalhe'].forEach(id => {
+  ['secao-dashboard', 'secao-lista', 'secao-formulario', 'secao-detalhe',
+   'secao-usuarios',  'secao-form-usuario'].forEach(id => {
     document.getElementById(id).classList.toggle('oculto', id !== idAtiva);
   });
 }
@@ -47,7 +124,8 @@ function alternarSecao(idAtiva) {
 // ================================================
 
 async function carregarClientes() {
-  const res = await fetch('/api/clientes');
+  const res = await apiFetch('/api/clientes');
+  if (!res) return;
   const clientes = await res.json();
   const corpo = document.getElementById('corpo-tabela');
 
@@ -71,9 +149,9 @@ async function carregarClientes() {
 }
 
 async function editarCliente(id) {
-  const res = await fetch(`/api/clientes/${id}`);
-  const cliente = await res.json();
-  mostrarFormulario(cliente);
+  const res = await apiFetch(`/api/clientes/${id}`);
+  if (!res) return;
+  mostrarFormulario(await res.json());
 }
 
 async function salvarCliente(event) {
@@ -84,7 +162,7 @@ async function salvarCliente(event) {
     return;
   }
 
-  const id = document.getElementById('cliente-id').value;
+  const id    = document.getElementById('cliente-id').value;
   const dados = {
     nome:            document.getElementById('nome').value.trim(),
     cpf:             document.getElementById('cpf').value.replace(/\D/g, ''),
@@ -93,18 +171,15 @@ async function salvarCliente(event) {
     endereco:        document.getElementById('endereco').value.trim(),
   };
 
-  const res = await fetch(id ? `/api/clientes/${id}` : '/api/clientes', {
+  const res = await apiFetch(id ? `/api/clientes/${id}` : '/api/clientes', {
     method:  id ? 'PUT' : 'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(dados),
   });
+  if (!res) return;
 
   const resultado = await res.json();
-
-  if (!res.ok) {
-    exibirMensagem(resultado.erro, 'erro');
-    return;
-  }
+  if (!res.ok) { exibirMensagem(resultado.erro, 'erro'); return; }
 
   exibirMensagem(id ? 'Cliente atualizado!' : 'Cliente cadastrado!', 'sucesso');
   mostrarLista();
@@ -113,13 +188,10 @@ async function salvarCliente(event) {
 async function deletarCliente(id, nome) {
   if (!confirm(`Excluir o cliente "${nome}" e todos os seus contatos?`)) return;
 
-  const res = await fetch(`/api/clientes/${id}`, { method: 'DELETE' });
+  const res = await apiFetch(`/api/clientes/${id}`, { method: 'DELETE' });
+  if (!res) return;
   const resultado = await res.json();
-
-  if (!res.ok) {
-    exibirMensagem(resultado.erro, 'erro');
-    return;
-  }
+  if (!res.ok) { exibirMensagem(resultado.erro, 'erro'); return; }
 
   exibirMensagem('Cliente excluído!', 'sucesso');
   carregarClientes();
@@ -130,7 +202,8 @@ async function deletarCliente(id, nome) {
 // ================================================
 
 async function carregarDetalheCliente(id) {
-  const res = await fetch(`/api/clientes/${id}`);
+  const res = await apiFetch(`/api/clientes/${id}`);
+  if (!res) return;
   const cliente = await res.json();
   clienteAtual = cliente;
 
@@ -173,7 +246,7 @@ async function salvarContato(event) {
   const telefone = document.getElementById('telefone').value.trim();
   const tipo     = document.getElementById('tipo-contato').value;
 
-  const res = await fetch(
+  const res = await apiFetch(
     id ? `/api/contatos/${id}` : `/api/contatos/cliente/${clienteAtual.id}`,
     {
       method:  id ? 'PUT' : 'POST',
@@ -181,13 +254,10 @@ async function salvarContato(event) {
       body:    JSON.stringify({ telefone, tipo }),
     }
   );
+  if (!res) return;
 
   const resultado = await res.json();
-
-  if (!res.ok) {
-    exibirMensagem(resultado.erro, 'erro');
-    return;
-  }
+  if (!res.ok) { exibirMensagem(resultado.erro, 'erro'); return; }
 
   exibirMensagem(id ? 'Contato atualizado!' : 'Contato adicionado!', 'sucesso');
   carregarDetalheCliente(clienteAtual.id);
@@ -195,10 +265,10 @@ async function salvarContato(event) {
 
 function editarContato(id, telefone, tipo) {
   document.getElementById('contato-id').value = id;
-  document.getElementById('telefone').value = telefone;
+  document.getElementById('telefone').value   = telefone;
   document.getElementById('tipo-contato').value = tipo;
   document.getElementById('titulo-form-contato').textContent = 'Editar Contato';
-  document.getElementById('btn-salvar-contato').textContent = 'Salvar';
+  document.getElementById('btn-salvar-contato').textContent  = 'Salvar';
   document.getElementById('btn-cancelar-contato').classList.remove('oculto');
   document.getElementById('form-contato').scrollIntoView({ behavior: 'smooth' });
 }
@@ -210,13 +280,10 @@ function cancelarEdicaoContato() {
 async function deletarContato(id) {
   if (!confirm('Excluir este contato?')) return;
 
-  const res = await fetch(`/api/contatos/${id}`, { method: 'DELETE' });
+  const res = await apiFetch(`/api/contatos/${id}`, { method: 'DELETE' });
+  if (!res) return;
   const resultado = await res.json();
-
-  if (!res.ok) {
-    exibirMensagem(resultado.erro, 'erro');
-    return;
-  }
+  if (!res.ok) { exibirMensagem(resultado.erro, 'erro'); return; }
 
   exibirMensagem('Contato excluído!', 'sucesso');
   carregarDetalheCliente(clienteAtual.id);
@@ -226,8 +293,120 @@ function resetarFormContato() {
   document.getElementById('form-contato').reset();
   document.getElementById('contato-id').value = '';
   document.getElementById('titulo-form-contato').textContent = 'Adicionar Contato';
-  document.getElementById('btn-salvar-contato').textContent = 'Adicionar';
+  document.getElementById('btn-salvar-contato').textContent  = 'Adicionar';
   document.getElementById('btn-cancelar-contato').classList.add('oculto');
+}
+
+// ================================================
+// Usuários — CRUD (admin)
+// ================================================
+
+async function carregarUsuarios() {
+  const res = await apiFetch('/api/usuarios');
+  if (!res) return;
+
+  if (res.status === 403) {
+    exibirMensagem('Acesso restrito a administradores', 'erro');
+    return;
+  }
+
+  const usuarios = await res.json();
+  const corpo = document.getElementById('corpo-usuarios');
+
+  if (usuarios.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:1.5rem">Nenhum usuário cadastrado</td></tr>';
+    return;
+  }
+
+  corpo.innerHTML = usuarios.map(u => {
+    const ehEuMesmo  = u.id === usuarioLogado.id;
+    const btnStatus  = u.ativo
+      ? `<button class="btn-deletar" onclick="toggleStatusUsuario(${u.id}, 1)" ${ehEuMesmo ? 'disabled title="Você não pode desativar sua própria conta"' : ''}>Desativar</button>`
+      : `<button class="btn-ativar"  onclick="toggleStatusUsuario(${u.id}, 0)">Ativar</button>`;
+
+    return `
+      <tr>
+        <td>${escapeHtml(u.nome)}</td>
+        <td>${escapeHtml(u.email)}</td>
+        <td><span class="badge-nivel ${u.nivel}">${u.nivel === 'admin' ? 'Admin' : 'Usuário'}</span></td>
+        <td><span class="badge-status ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+        <td>
+          <button class="btn-editar" onclick="editarUsuario(${u.id})">Editar</button>
+          ${btnStatus}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function mostrarFormularioUsuario(usuario = null) {
+  document.getElementById('form-usuario').reset();
+  document.getElementById('usuario-id').value = '';
+
+  const senhaInput = document.getElementById('usuario-senha');
+  const senhaHint  = document.getElementById('senha-hint');
+
+  if (usuario) {
+    document.getElementById('titulo-form-usuario').textContent = 'Editar Usuário';
+    document.getElementById('usuario-id').value    = usuario.id;
+    document.getElementById('usuario-nome').value  = usuario.nome;
+    document.getElementById('usuario-email').value = usuario.email;
+    document.getElementById('usuario-nivel').value = usuario.nivel;
+    senhaInput.required  = false;
+    senhaInput.minLength = 0;
+    senhaHint.textContent = '(deixe em branco para manter a atual)';
+  } else {
+    document.getElementById('titulo-form-usuario').textContent = 'Novo Usuário';
+    senhaInput.required  = true;
+    senhaInput.minLength = 6;
+    senhaHint.textContent = '(mínimo 6 caracteres)';
+  }
+
+  alternarSecao('secao-form-usuario');
+}
+
+async function editarUsuario(id) {
+  const res = await apiFetch(`/api/usuarios/${id}`);
+  if (!res) return;
+  mostrarFormularioUsuario(await res.json());
+}
+
+async function salvarUsuario(event) {
+  event.preventDefault();
+
+  const id    = document.getElementById('usuario-id').value;
+  const dados = {
+    nome:  document.getElementById('usuario-nome').value.trim(),
+    email: document.getElementById('usuario-email').value.trim(),
+    senha: document.getElementById('usuario-senha').value,
+    nivel: document.getElementById('usuario-nivel').value,
+  };
+
+  const res = await apiFetch(id ? `/api/usuarios/${id}` : '/api/usuarios', {
+    method:  id ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(dados),
+  });
+  if (!res) return;
+
+  const resultado = await res.json();
+  if (!res.ok) { exibirMensagem(resultado.erro, 'erro'); return; }
+
+  exibirMensagem(id ? 'Usuário atualizado!' : 'Usuário criado!', 'sucesso');
+  navegarPara('usuarios');
+}
+
+async function toggleStatusUsuario(id, ativoAtual) {
+  const acao = ativoAtual ? 'desativar' : 'ativar';
+  if (!confirm(`Deseja ${acao} este usuário?`)) return;
+
+  const res = await apiFetch(`/api/usuarios/${id}/status`, { method: 'PATCH' });
+  if (!res) return;
+  const resultado = await res.json();
+  if (!res.ok) { exibirMensagem(resultado.erro, 'erro'); return; }
+
+  exibirMensagem(`Usuário ${ativoAtual ? 'desativado' : 'ativado'}!`, 'sucesso');
+  carregarUsuarios();
 }
 
 // ================================================
@@ -237,17 +416,14 @@ function resetarFormContato() {
 function validarCPF(cpf) {
   const s = cpf.replace(/\D/g, '');
   if (s.length !== 11) return false;
-  // Rejeita sequências com todos os dígitos iguais (ex: 111.111.111-11)
   if (/^(\d)\1{10}$/.test(s)) return false;
 
-  // Valida primeiro dígito verificador
   let soma = 0;
   for (let i = 0; i < 9; i++) soma += Number(s[i]) * (10 - i);
   let resto = (soma * 10) % 11;
   if (resto === 10 || resto === 11) resto = 0;
   if (resto !== Number(s[9])) return false;
 
-  // Valida segundo dígito verificador
   soma = 0;
   for (let i = 0; i < 10; i++) soma += Number(s[i]) * (11 - i);
   resto = (soma * 10) % 11;
@@ -284,7 +460,6 @@ function capitalizar(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Escapa HTML para exibição segura em innerHTML
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -293,7 +468,6 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-// Escapa apenas aspas simples para uso em atributos onclick inline
 function escapeAttr(str) {
   return String(str).replace(/'/g, "\\'");
 }
@@ -301,11 +475,11 @@ function escapeAttr(str) {
 function exibirMensagem(texto, tipo) {
   const el = document.getElementById('mensagem');
   el.textContent = texto;
-  el.className = `mensagem ${tipo}`;
+  el.className   = `mensagem ${tipo}`;
   el.classList.remove('oculto');
   clearTimeout(el._timer);
   el._timer = setTimeout(() => el.classList.add('oculto'), 3000);
 }
 
-// Inicializa carregando a lista
-mostrarLista();
+// Ponto de entrada: verifica autenticação antes de qualquer coisa
+inicializar();

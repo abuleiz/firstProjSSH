@@ -10,21 +10,155 @@ body {
   color: #333;
 }
 
+/* ------------------------------------------------
+   Layout base: sidebar + área principal
+------------------------------------------------ */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+#sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: #1c2a3a;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-logo {
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+}
+
+.sidebar-logo span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.4px;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0.6rem 0;
+  flex: 1;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1.25rem;
+  cursor: pointer;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.875rem;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
+}
+
+.menu-item.ativo {
+  background: rgba(26,86,160,0.3);
+  color: white;
+  border-left-color: #4d8fd1;
+}
+
+.menu-item svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.menu-item.ativo svg,
+.menu-item:hover svg {
+  opacity: 1;
+}
+
+/* Área principal (header + main) */
+.area-principal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 header {
   background: #1a56a0;
   color: white;
-  padding: 1rem 2rem;
+  padding: 0 2rem;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
 }
 
 header h1 {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 main {
   max-width: 900px;
+  width: 100%;
   margin: 2rem auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
+}
+
+/* ------------------------------------------------
+   Dashboard
+------------------------------------------------ */
+.cards-dashboard {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.card-stat {
+  background: white;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-left: 4px solid #1a56a0;
+}
+
+.card-stat-numero {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1a56a0;
+  line-height: 1;
+}
+
+.card-stat-label {
+  font-size: 0.82rem;
+  color: #666;
+}
+
+.dashboard-boas-vindas {
+  background: white;
+  padding: 1.25rem 1.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.dashboard-boas-vindas p {
+  color: #555;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
 }
 
 h2 {
@@ -254,3 +388,107 @@ form {
 }
 
 .oculto { display: none !important; }
+
+/* ------------------------------------------------
+   Sidebar footer: usuário logado + logout
+------------------------------------------------ */
+.sidebar-footer {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 0.85rem 1.25rem;
+}
+
+.usuario-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.65rem;
+}
+
+.nome-usuario {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge-nivel {
+  display: inline-block;
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.badge-nivel.admin {
+  background: rgba(255,193,7,0.2);
+  color: #ffd54f;
+}
+
+.badge-nivel.usuario {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.85rem;
+  padding: 0.35rem 0;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.btn-logout:hover {
+  background: transparent;
+  color: rgba(255,255,255,0.85);
+}
+
+/* ------------------------------------------------
+   Badges de nível e status na tabela de usuários
+------------------------------------------------ */
+.badge-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.badge-status.ativo {
+  background: rgba(39,174,96,0.12);
+  color: #27ae60;
+}
+
+.badge-status.inativo {
+  background: rgba(192,57,43,0.1);
+  color: #c0392b;
+}
+
+button.btn-ativar {
+  background: #27ae60;
+  margin-left: 0.3rem;
+}
+
+button.btn-ativar:hover {
+  background: #1e8449;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.label-hint {
+  font-weight: 400;
+  color: #888;
+  font-size: 0.8rem;
+}

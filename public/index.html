@@ -3,116 +3,226 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cadastro de Clientes</title>
+  <title>GestãoClientes</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <header>
-    <h1>Cadastro de Clientes</h1>
-  </header>
+  <div class="layout">
 
-  <main>
-
-    <!-- Seção: Lista de clientes -->
-    <section id="secao-lista">
-      <div class="cabecalho-secao">
-        <h2>Clientes</h2>
-        <button onclick="mostrarFormulario()">+ Novo Cliente</button>
+    <!-- Sidebar -->
+    <nav id="sidebar">
+      <div class="sidebar-logo">
+        <span>GestãoClientes</span>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>CPF</th>
-            <th>Email</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="corpo-tabela"></tbody>
-      </table>
-    </section>
 
-    <!-- Seção: Formulário de cliente (novo / editar) -->
-    <section id="secao-formulario" class="oculto">
-      <h2 id="titulo-formulario">Novo Cliente</h2>
-      <form id="form-cliente" onsubmit="salvarCliente(event)">
-        <input type="hidden" id="cliente-id">
-        <div class="campo">
-          <label for="nome">Nome *</label>
-          <input type="text" id="nome" required>
-        </div>
-        <div class="campo">
-          <label for="cpf">CPF *</label>
-          <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" required onblur="validarCampoCPF()">
-          <span class="erro-campo oculto" id="erro-cpf">CPF inválido</span>
-        </div>
-        <div class="campo">
-          <label for="email">Email</label>
-          <input type="email" id="email">
-        </div>
-        <div class="campo">
-          <label for="data-nascimento">Data de Nascimento</label>
-          <input type="date" id="data-nascimento">
-        </div>
-        <div class="campo">
-          <label for="endereco">Endereço</label>
-          <textarea id="endereco" rows="3"></textarea>
-        </div>
-        <div class="acoes-form">
-          <button type="submit">Salvar</button>
-          <button type="button" class="btn-secundario" onclick="mostrarLista()">Cancelar</button>
-        </div>
-      </form>
-    </section>
+      <ul class="sidebar-menu">
+        <li class="menu-item" id="nav-dashboard" onclick="navegarPara('dashboard')">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+          Dashboard
+        </li>
+        <li class="menu-item" id="nav-clientes" onclick="navegarPara('clientes')">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M12 12c2.71 0 4.8-2.09 4.8-4.8S14.71 2.4 12 2.4 7.2 4.49 7.2 7.2 9.29 12 12 12zm0 2.4c-3.21 0-9.6 1.61-9.6 4.8v2.4h19.2v-2.4c0-3.19-6.39-4.8-9.6-4.8z"/>
+          </svg>
+          Cadastro de Clientes
+        </li>
+        <li class="menu-item oculto" id="nav-usuarios" onclick="navegarPara('usuarios')">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+          </svg>
+          Usuários
+        </li>
+      </ul>
 
-    <!-- Seção: Detalhe do cliente e seus contatos -->
-    <section id="secao-detalhe" class="oculto">
-      <button class="btn-voltar" onclick="mostrarLista()">← Voltar para lista</button>
-
-      <div id="info-cliente"></div>
-
-      <div class="cabecalho-secao">
-        <h3>Contatos</h3>
+      <div class="sidebar-footer">
+        <div class="usuario-info">
+          <span class="nome-usuario" id="sidebar-nome-usuario">—</span>
+          <span class="badge-nivel" id="sidebar-nivel-usuario">—</span>
+        </div>
+        <button class="btn-logout" onclick="logout()">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+          </svg>
+          Sair
+        </button>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Telefone</th>
-            <th>Tipo</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="corpo-contatos"></tbody>
-      </table>
+    </nav>
 
-      <h3 style="margin-top:1.5rem" id="titulo-form-contato">Adicionar Contato</h3>
-      <form id="form-contato" onsubmit="salvarContato(event)">
-        <input type="hidden" id="contato-id">
-        <div class="campos-inline">
-          <div class="campo">
-            <label for="telefone">Telefone *</label>
-            <input type="text" id="telefone" placeholder="(00) 00000-0000" required>
-          </div>
-          <div class="campo">
-            <label for="tipo-contato">Tipo *</label>
-            <select id="tipo-contato" required>
-              <option value="celular">Celular</option>
-              <option value="trabalho">Trabalho</option>
-              <option value="residencial">Residencial</option>
-            </select>
-          </div>
-          <div class="campo campo-botao">
-            <button type="submit" id="btn-salvar-contato">Adicionar</button>
-            <button type="button" id="btn-cancelar-contato" class="btn-secundario oculto" onclick="cancelarEdicaoContato()">Cancelar</button>
-          </div>
-        </div>
-      </form>
-    </section>
+    <!-- Área principal -->
+    <div class="area-principal">
 
-  </main>
+      <header>
+        <h1 id="titulo-pagina">Dashboard</h1>
+      </header>
 
-  <!-- Notificação flutuante -->
+      <main>
+
+        <!-- Dashboard -->
+        <section id="secao-dashboard" class="oculto">
+          <div class="cards-dashboard">
+            <div class="card-stat">
+              <span class="card-stat-numero" id="total-clientes">—</span>
+              <span class="card-stat-label">Clientes cadastrados</span>
+            </div>
+          </div>
+          <div class="dashboard-boas-vindas">
+            <p>Bem-vindo ao sistema de cadastro de clientes.</p>
+            <button onclick="navegarPara('clientes')">Ver Clientes</button>
+          </div>
+        </section>
+
+        <!-- Lista de clientes -->
+        <section id="secao-lista" class="oculto">
+          <div class="cabecalho-secao">
+            <h2>Clientes</h2>
+            <button onclick="mostrarFormulario()">+ Novo Cliente</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Email</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+          </table>
+        </section>
+
+        <!-- Formulário de cliente -->
+        <section id="secao-formulario" class="oculto">
+          <h2 id="titulo-formulario">Novo Cliente</h2>
+          <form id="form-cliente" onsubmit="salvarCliente(event)">
+            <input type="hidden" id="cliente-id">
+            <div class="campo">
+              <label for="nome">Nome *</label>
+              <input type="text" id="nome" required>
+            </div>
+            <div class="campo">
+              <label for="cpf">CPF *</label>
+              <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" required onblur="validarCampoCPF()">
+              <span class="erro-campo oculto" id="erro-cpf">CPF inválido</span>
+            </div>
+            <div class="campo">
+              <label for="email">Email</label>
+              <input type="email" id="email">
+            </div>
+            <div class="campo">
+              <label for="data-nascimento">Data de Nascimento</label>
+              <input type="date" id="data-nascimento">
+            </div>
+            <div class="campo">
+              <label for="endereco">Endereço</label>
+              <textarea id="endereco" rows="3"></textarea>
+            </div>
+            <div class="acoes-form">
+              <button type="submit">Salvar</button>
+              <button type="button" class="btn-secundario" onclick="mostrarLista()">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Detalhe do cliente + contatos -->
+        <section id="secao-detalhe" class="oculto">
+          <button class="btn-voltar" onclick="mostrarLista()">← Voltar para lista</button>
+          <div id="info-cliente"></div>
+          <div class="cabecalho-secao">
+            <h3>Contatos</h3>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Telefone</th>
+                <th>Tipo</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-contatos"></tbody>
+          </table>
+          <h3 style="margin-top:1.5rem" id="titulo-form-contato">Adicionar Contato</h3>
+          <form id="form-contato" onsubmit="salvarContato(event)">
+            <input type="hidden" id="contato-id">
+            <div class="campos-inline">
+              <div class="campo">
+                <label for="telefone">Telefone *</label>
+                <input type="text" id="telefone" placeholder="(00) 00000-0000" required>
+              </div>
+              <div class="campo">
+                <label for="tipo-contato">Tipo *</label>
+                <select id="tipo-contato" required>
+                  <option value="celular">Celular</option>
+                  <option value="trabalho">Trabalho</option>
+                  <option value="residencial">Residencial</option>
+                </select>
+              </div>
+              <div class="campo campo-botao">
+                <button type="submit" id="btn-salvar-contato">Adicionar</button>
+                <button type="button" id="btn-cancelar-contato" class="btn-secundario oculto" onclick="cancelarEdicaoContato()">Cancelar</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- Lista de usuários (admin) -->
+        <section id="secao-usuarios" class="oculto">
+          <div class="cabecalho-secao">
+            <h2>Usuários</h2>
+            <button onclick="mostrarFormularioUsuario()">+ Novo Usuário</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Nível</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-usuarios"></tbody>
+          </table>
+        </section>
+
+        <!-- Formulário de usuário (admin) -->
+        <section id="secao-form-usuario" class="oculto">
+          <h2 id="titulo-form-usuario">Novo Usuário</h2>
+          <form id="form-usuario" onsubmit="salvarUsuario(event)">
+            <input type="hidden" id="usuario-id">
+            <div class="campo">
+              <label for="usuario-nome">Nome *</label>
+              <input type="text" id="usuario-nome" required>
+            </div>
+            <div class="campo">
+              <label for="usuario-email">E-mail *</label>
+              <input type="email" id="usuario-email" required>
+            </div>
+            <div class="campo">
+              <label for="usuario-senha">Senha <span id="senha-hint" class="label-hint"></span></label>
+              <input type="password" id="usuario-senha">
+            </div>
+            <div class="campo">
+              <label for="usuario-nivel">Nível de acesso *</label>
+              <select id="usuario-nivel" required>
+                <option value="usuario">Usuário</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="acoes-form">
+              <button type="submit">Salvar</button>
+              <button type="button" class="btn-secundario" onclick="navegarPara('usuarios')">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+      </main>
+    </div><!-- /area-principal -->
+
+  </div><!-- /layout -->
+
   <div id="mensagem" class="mensagem oculto"></div>
 
   <script src="app.js"></script>
