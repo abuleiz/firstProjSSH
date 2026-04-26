@@ -45,6 +45,23 @@ poolPromise.catch(err => {
 // Criação das tabelas (executado apenas se não existirem)
 // ------------------------------------------------
 async function criarTabelas(pool) {
+  // perfis deve existir antes de usuarios (referenciado por FK)
+  await pool.request().query(`
+    IF OBJECT_ID('perfis', 'U') IS NULL
+    BEGIN
+      CREATE TABLE perfis (
+        id        INT          IDENTITY(1,1) PRIMARY KEY,
+        nome      VARCHAR(100) NOT NULL,
+        descricao VARCHAR(255) NULL,
+        ativo     BIT          NOT NULL DEFAULT 1,
+        nivel     INT          NOT NULL DEFAULT 0
+      );
+      INSERT INTO perfis (nome, descricao, ativo, nivel) VALUES
+        ('Administrador', 'Acesso total ao sistema',  1, 1),
+        ('Usuário',       'Acesso padrão ao sistema', 1, 2);
+    END
+  `);
+
   await pool.request().query(`
     IF OBJECT_ID('clientes', 'U') IS NULL
     CREATE TABLE clientes (
@@ -66,7 +83,7 @@ async function criarTabelas(pool) {
       cliente_id  INT           NOT NULL,
       telefone    NVARCHAR(20)  NOT NULL,
       tipo        NVARCHAR(15)  NOT NULL
-        CHECK (tipo IN ('celular', 'trabalho', 'residencial')),
+        CHECK (tipo IN ('celular', 'trabalho', 'residencial', 'email')),
       CONSTRAINT FK_contatos_clientes
         FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
     );
@@ -79,11 +96,11 @@ async function criarTabelas(pool) {
       nome        NVARCHAR(255)  NOT NULL,
       email       NVARCHAR(255)  NOT NULL,
       senha_hash  NVARCHAR(255)  NOT NULL,
-      nivel       NVARCHAR(10)   NOT NULL
-        CHECK (nivel IN ('admin', 'usuario')),
+      perfil_id   INT            NOT NULL,
       ativo       BIT            NOT NULL DEFAULT 1,
       criado_em   DATETIME       DEFAULT GETDATE(),
-      CONSTRAINT UQ_usuarios_email UNIQUE (email)
+      CONSTRAINT UQ_usuarios_email  UNIQUE (email),
+      CONSTRAINT FK_usuarios_perfis FOREIGN KEY (perfil_id) REFERENCES perfis(id)
     );
   `);
 }
@@ -97,15 +114,19 @@ async function seedAdmin(pool) {
     .query('SELECT id FROM usuarios WHERE email = @email');
 
   if (resultado.recordset.length === 0) {
+    const perfil    = await pool.request()
+      .query('SELECT id FROM perfis WHERE nivel = 1');
+    const perfilId  = perfil.recordset[0]?.id || 1;
     const senhaHash = bcrypt.hashSync('admin123', 10);
+
     await pool.request()
       .input('nome',      sql.NVarChar, 'Administrador')
       .input('email',     sql.NVarChar, 'admin@admin.com')
       .input('senhaHash', sql.NVarChar, senhaHash)
-      .input('nivel',     sql.NVarChar, 'admin')
+      .input('perfilId',  sql.Int,      perfilId)
       .query(`
-        INSERT INTO usuarios (nome, email, senha_hash, nivel)
-        VALUES (@nome, @email, @senhaHash, @nivel)
+        INSERT INTO usuarios (nome, email, senha_hash, perfil_id)
+        VALUES (@nome, @email, @senhaHash, @perfilId)
       `);
     console.log('Usuário admin criado — e-mail: admin@admin.com / senha: admin123');
   }

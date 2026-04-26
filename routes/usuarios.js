@@ -12,7 +12,13 @@ router.get('/', async (req, res) => {
   try {
     const pool   = await poolPromise;
     const result = await pool.request()
-      .query('SELECT id, nome, email, nivel, ativo, criado_em FROM usuarios ORDER BY nome');
+      .query(`
+        SELECT u.id, u.nome, u.email, u.ativo, u.criado_em,
+               u.perfil_id, p.nome AS perfil_nome, p.nivel AS perfil_nivel
+        FROM usuarios u
+        JOIN perfis p ON u.perfil_id = p.id
+        ORDER BY u.nome
+      `);
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar usuários' });
@@ -25,8 +31,13 @@ router.get('/:id', async (req, res) => {
     const pool   = await poolPromise;
     const result = await pool.request()
       .input('id', sql.Int, req.params.id)
-      .query('SELECT id, nome, email, nivel, ativo FROM usuarios WHERE id = @id');
-
+      .query(`
+        SELECT u.id, u.nome, u.email, u.ativo,
+               u.perfil_id, p.nome AS perfil_nome, p.nivel AS perfil_nivel
+        FROM usuarios u
+        JOIN perfis p ON u.perfil_id = p.id
+        WHERE u.id = @id
+      `);
     const usuario = result.recordset[0];
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
     res.json(usuario);
@@ -37,95 +48,92 @@ router.get('/:id', async (req, res) => {
 
 // Cria novo usuário
 router.post('/', async (req, res) => {
-  const { nome, email, senha, nivel } = req.body;
+  const { nome, email, senha, perfil_id } = req.body;
 
-  if (!nome || !email || !senha || !nivel) {
+  if (!nome || !email || !senha || !perfil_id)
     return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
-  }
-  if (!['admin', 'usuario'].includes(nivel)) {
-    return res.status(400).json({ erro: 'Nível de acesso inválido' });
-  }
-  if (senha.length < 6) {
+  if (senha.length < 6)
     return res.status(400).json({ erro: 'A senha deve ter pelo menos 6 caracteres' });
-  }
 
   try {
+    const pool     = await poolPromise;
+    const resPerfil = await pool.request()
+      .input('perfil_id', sql.Int, perfil_id)
+      .query('SELECT id FROM perfis WHERE id = @perfil_id AND ativo = 1');
+    if (!resPerfil.recordset[0])
+      return res.status(400).json({ erro: 'Perfil inválido' });
+
     const senhaHash = bcrypt.hashSync(senha, 10);
-    const pool      = await poolPromise;
     const result    = await pool.request()
       .input('nome',      sql.NVarChar, nome)
       .input('email',     sql.NVarChar, email)
       .input('senhaHash', sql.NVarChar, senhaHash)
-      .input('nivel',     sql.NVarChar, nivel)
+      .input('perfil_id', sql.Int,      perfil_id)
       .query(`
-        INSERT INTO usuarios (nome, email, senha_hash, nivel)
+        INSERT INTO usuarios (nome, email, senha_hash, perfil_id)
         OUTPUT INSERTED.id
-        VALUES (@nome, @email, @senhaHash, @nivel)
+        VALUES (@nome, @email, @senhaHash, @perfil_id)
       `);
 
     const id = result.recordset[0].id;
-    res.status(201).json({ id, nome, email, nivel, ativo: true });
+    res.status(201).json({ id, nome, email, perfil_id, ativo: true });
   } catch (err) {
-    if (err.number === 2627 || err.number === 2601) {
+    if (err.number === 2627 || err.number === 2601)
       return res.status(400).json({ erro: 'E-mail já cadastrado' });
-    }
     res.status(500).json({ erro: 'Erro ao criar usuário' });
   }
 });
 
 // Atualiza dados do usuário (senha só é alterada se vier preenchida)
 router.put('/:id', async (req, res) => {
-  const { nome, email, senha, nivel } = req.body;
+  const { nome, email, senha, perfil_id } = req.body;
 
-  if (!nome || !email || !nivel) {
-    return res.status(400).json({ erro: 'Nome, e-mail e nível são obrigatórios' });
-  }
-  if (!['admin', 'usuario'].includes(nivel)) {
-    return res.status(400).json({ erro: 'Nível de acesso inválido' });
-  }
+  if (!nome || !email || !perfil_id)
+    return res.status(400).json({ erro: 'Nome, e-mail e perfil são obrigatórios' });
 
   try {
-    const pool = await poolPromise;
-    let result;
+    const pool      = await poolPromise;
+    const resPerfil = await pool.request()
+      .input('perfil_id', sql.Int, perfil_id)
+      .query('SELECT id FROM perfis WHERE id = @perfil_id AND ativo = 1');
+    if (!resPerfil.recordset[0])
+      return res.status(400).json({ erro: 'Perfil inválido' });
 
+    let result;
     if (senha && senha.trim().length > 0) {
-      if (senha.trim().length < 6) {
+      if (senha.trim().length < 6)
         return res.status(400).json({ erro: 'A senha deve ter pelo menos 6 caracteres' });
-      }
       const senhaHash = bcrypt.hashSync(senha.trim(), 10);
       result = await pool.request()
         .input('id',        sql.Int,      req.params.id)
         .input('nome',      sql.NVarChar, nome)
         .input('email',     sql.NVarChar, email)
         .input('senhaHash', sql.NVarChar, senhaHash)
-        .input('nivel',     sql.NVarChar, nivel)
-        .query('UPDATE usuarios SET nome=@nome, email=@email, senha_hash=@senhaHash, nivel=@nivel WHERE id=@id');
+        .input('perfil_id', sql.Int,      perfil_id)
+        .query('UPDATE usuarios SET nome=@nome, email=@email, senha_hash=@senhaHash, perfil_id=@perfil_id WHERE id=@id');
     } else {
       result = await pool.request()
-        .input('id',    sql.Int,      req.params.id)
-        .input('nome',  sql.NVarChar, nome)
-        .input('email', sql.NVarChar, email)
-        .input('nivel', sql.NVarChar, nivel)
-        .query('UPDATE usuarios SET nome=@nome, email=@email, nivel=@nivel WHERE id=@id');
+        .input('id',        sql.Int,      req.params.id)
+        .input('nome',      sql.NVarChar, nome)
+        .input('email',     sql.NVarChar, email)
+        .input('perfil_id', sql.Int,      perfil_id)
+        .query('UPDATE usuarios SET nome=@nome, email=@email, perfil_id=@perfil_id WHERE id=@id');
     }
 
-    if (result.rowsAffected[0] === 0) {
+    if (result.rowsAffected[0] === 0)
       return res.status(404).json({ erro: 'Usuário não encontrado' });
-    }
-    res.json({ id: Number(req.params.id), nome, email, nivel });
+    res.json({ id: Number(req.params.id), nome, email, perfil_id });
   } catch (err) {
-    if (err.number === 2627 || err.number === 2601) {
+    if (err.number === 2627 || err.number === 2601)
       return res.status(400).json({ erro: 'E-mail já cadastrado' });
-    }
     res.status(500).json({ erro: 'Erro ao atualizar usuário' });
   }
 });
 
 // Alterna status ativo/inativo (sem excluir do banco)
 router.patch('/:id/status', async (req, res) => {
-  if (Number(req.params.id) === req.session.userId) {
+  if (Number(req.params.id) === req.session.userId)
     return res.status(400).json({ erro: 'Você não pode desativar sua própria conta' });
-  }
 
   try {
     const pool = await poolPromise;
@@ -137,9 +145,7 @@ router.patch('/:id/status', async (req, res) => {
     const usuario = resUsuario.recordset[0];
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
 
-    // BIT: true → desativa (0), false → ativa (1)
     const novoStatus = usuario.ativo ? 0 : 1;
-
     await pool.request()
       .input('ativo', sql.Bit, novoStatus)
       .input('id',    sql.Int, req.params.id)

@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { poolPromise, sql } = require('../src/config/database');
 
-const TIPOS_VALIDOS = ['celular', 'trabalho', 'residencial'];
+const TIPOS_VALIDOS = ['celular', 'trabalho', 'residencial', 'email'];
 
 // Adiciona contato a um cliente
 router.post('/cliente/:clienteId', async (req, res) => {

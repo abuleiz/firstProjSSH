@@ -8,6 +8,8 @@ const clientesRouter      = require('./routes/clientes');
 const contatosRouter      = require('./routes/contatos');
 const authRouter          = require('./routes/auth');
 const usuariosRouter      = require('./routes/usuarios');
+const menusRouter         = require('./routes/menus');
+const perfisRouter        = require('./routes/perfis');
 const { requireAuth }     = require('./middleware/auth');
 
 const app  = express();
@@ -34,6 +36,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/clientes', requireAuth, clientesRouter);
 app.use('/api/contatos', requireAuth, contatosRouter);
 app.use('/api/usuarios', usuariosRouter); // requireAdmin está dentro do router
+app.use('/api/menus',   menusRouter);
+app.use('/api/perfis',  perfisRouter);
 
 // Aguarda a conexão com o banco antes de abrir a porta
 poolPromise

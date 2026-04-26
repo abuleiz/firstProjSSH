@@ -16,26 +16,7 @@
         <span>GestãoClientes</span>
       </div>
 
-      <ul class="sidebar-menu">
-        <li class="menu-item" id="nav-dashboard" onclick="navegarPara('dashboard')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-          </svg>
-          Dashboard
-        </li>
-        <li class="menu-item" id="nav-clientes" onclick="navegarPara('clientes')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M12 12c2.71 0 4.8-2.09 4.8-4.8S14.71 2.4 12 2.4 7.2 4.49 7.2 7.2 9.29 12 12 12zm0 2.4c-3.21 0-9.6 1.61-9.6 4.8v2.4h19.2v-2.4c0-3.19-6.39-4.8-9.6-4.8z"/>
-          </svg>
-          Cadastro de Clientes
-        </li>
-        <li class="menu-item oculto" id="nav-usuarios" onclick="navegarPara('usuarios')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-          </svg>
-          Usuários
-        </li>
-      </ul>
+      <ul class="sidebar-menu" id="sidebar-menu"></ul>
 
       <div class="sidebar-footer">
         <div class="usuario-info">
@@ -93,9 +74,10 @@
           </table>
         </section>
 
-        <!-- Formulário de cliente -->
+        <!-- Formulário de cliente + contatos inline -->
         <section id="secao-formulario" class="oculto">
           <h2 id="titulo-formulario">Novo Cliente</h2>
+
           <form id="form-cliente" onsubmit="salvarCliente(event)">
             <input type="hidden" id="cliente-id">
             <div class="campo">
@@ -124,47 +106,63 @@
               <button type="button" class="btn-secundario" onclick="mostrarLista()">Cancelar</button>
             </div>
           </form>
-        </section>
 
-        <!-- Detalhe do cliente + contatos -->
-        <section id="secao-detalhe" class="oculto">
-          <button class="btn-voltar" onclick="mostrarLista()">← Voltar para lista</button>
-          <div id="info-cliente"></div>
-          <div class="cabecalho-secao">
-            <h3>Contatos</h3>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Telefone</th>
-                <th>Tipo</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="corpo-contatos"></tbody>
-          </table>
-          <h3 style="margin-top:1.5rem" id="titulo-form-contato">Adicionar Contato</h3>
-          <form id="form-contato" onsubmit="salvarContato(event)">
-            <input type="hidden" id="contato-id">
-            <div class="campos-inline">
-              <div class="campo">
-                <label for="telefone">Telefone *</label>
-                <input type="text" id="telefone" placeholder="(00) 00000-0000" required>
-              </div>
-              <div class="campo">
-                <label for="tipo-contato">Tipo *</label>
-                <select id="tipo-contato" required>
-                  <option value="celular">Celular</option>
-                  <option value="trabalho">Trabalho</option>
-                  <option value="residencial">Residencial</option>
-                </select>
-              </div>
-              <div class="campo campo-botao">
-                <button type="submit" id="btn-salvar-contato">Adicionar</button>
-                <button type="button" id="btn-cancelar-contato" class="btn-secundario oculto" onclick="cancelarEdicaoContato()">Cancelar</button>
-              </div>
+          <!-- Seção de contatos inline (abaixo dos dados pessoais) -->
+          <div id="secao-contatos-inline">
+
+            <!-- Exibido enquanto o cliente ainda não foi salvo -->
+            <div id="msg-salvar-primeiro" class="aviso-info oculto">
+              <p>Salve o cliente primeiro para adicionar contatos.</p>
             </div>
-          </form>
+
+            <!-- Exibido após o cliente ser salvo -->
+            <div id="area-contatos" class="oculto">
+              <div class="cabecalho-secao contatos-cabecalho">
+                <h3>Contatos</h3>
+                <button type="button" onclick="mostrarFormContato()">+ Adicionar Contato</button>
+              </div>
+
+              <!-- Formulário inline (oculto até clicar em Adicionar ou Editar) -->
+              <div id="form-contato-wrapper" class="oculto">
+                <p id="titulo-form-contato" class="form-contato-titulo">Adicionar Contato</p>
+                <form id="form-contato" onsubmit="salvarContato(event)">
+                  <input type="hidden" id="contato-id">
+                  <div class="campos-inline">
+                    <div class="campo">
+                      <label for="tipo-contato">Tipo *</label>
+                      <select id="tipo-contato" required>
+                        <option value="celular">Celular</option>
+                        <option value="trabalho">Trabalho</option>
+                        <option value="residencial">Residencial</option>
+                        <option value="email">E-mail</option>
+                      </select>
+                    </div>
+                    <div class="campo">
+                      <label for="telefone">Contato *</label>
+                      <input type="text" id="telefone" placeholder="(00) 00000-0000" required>
+                    </div>
+                    <div class="campo campo-botao">
+                      <button type="submit" id="btn-salvar-contato">Salvar</button>
+                      <button type="button" class="btn-secundario" onclick="cancelarFormContato()">Cancelar</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Grid de contatos -->
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Contato</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="corpo-contatos"></tbody>
+              </table>
+            </div>
+
+          </div>
         </section>
 
         <!-- Lista de usuários (admin) -->
@@ -205,15 +203,128 @@
               <input type="password" id="usuario-senha">
             </div>
             <div class="campo">
-              <label for="usuario-nivel">Nível de acesso *</label>
-              <select id="usuario-nivel" required>
-                <option value="usuario">Usuário</option>
-                <option value="admin">Admin</option>
+              <label for="usuario-perfil">Perfil *</label>
+              <select id="usuario-perfil" required>
+                <!-- populado dinamicamente via /api/perfis -->
               </select>
             </div>
             <div class="acoes-form">
               <button type="submit">Salvar</button>
               <button type="button" class="btn-secundario" onclick="navegarPara('usuarios')">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Lista de menus (admin) -->
+        <section id="secao-menus" class="oculto">
+          <div class="cabecalho-secao">
+            <h2>Menus</h2>
+            <button onclick="mostrarFormularioMenu()">+ Novo Menu</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Ordem</th>
+                <th>Label</th>
+                <th>URL</th>
+                <th>Menu Pai</th>
+                <th>Perfil</th>
+                <th>Ativo</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-menus"></tbody>
+          </table>
+        </section>
+
+        <!-- Formulário de menu (admin) -->
+        <section id="secao-form-menu" class="oculto">
+          <h2 id="titulo-form-menu">Novo Menu</h2>
+          <form id="form-menu" onsubmit="salvarMenu(event)">
+            <input type="hidden" id="menu-id">
+            <div class="campo">
+              <label for="menu-label">Label *</label>
+              <input type="text" id="menu-label" required>
+            </div>
+            <div class="campo">
+              <label for="menu-icon">Ícone *</label>
+              <input type="text" id="menu-icon" required placeholder="ex: dashboard, clientes, usuarios">
+            </div>
+            <div class="campo">
+              <label for="menu-url">URL <span class="label-hint">(deixe vazio se for menu pai)</span></label>
+              <input type="text" id="menu-url" placeholder="ex: clientes, usuarios, menus">
+            </div>
+            <div class="campo">
+              <label for="menu-parent">Menu Pai</label>
+              <select id="menu-parent">
+                <option value="">Nenhum (item raiz)</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="menu-perfil">Perfil *</label>
+              <select id="menu-perfil" required>
+                <!-- populado dinamicamente via /api/perfis -->
+              </select>
+            </div>
+            <div class="campo">
+              <label for="menu-ordem">Ordem *</label>
+              <input type="number" id="menu-ordem" required min="1" value="1">
+            </div>
+            <div class="campo campo-checkbox">
+              <label>
+                <input type="checkbox" id="menu-ativo" checked>
+                Ativo
+              </label>
+            </div>
+            <div class="acoes-form">
+              <button type="submit">Salvar</button>
+              <button type="button" class="btn-secundario" onclick="navegarPara('menus')">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Lista de perfis (admin) -->
+        <section id="secao-perfis" class="oculto">
+          <div class="cabecalho-secao">
+            <h2>Perfis</h2>
+            <button onclick="mostrarFormularioPerfil()">+ Novo Perfil</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Ativo</th>
+                <th>Usuários ativos</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-perfis"></tbody>
+          </table>
+        </section>
+
+        <!-- Formulário de perfil (admin) -->
+        <section id="secao-form-perfil" class="oculto">
+          <h2 id="titulo-form-perfil">Novo Perfil</h2>
+          <form id="form-perfil" onsubmit="salvarPerfil(event)">
+            <input type="hidden" id="perfil-id">
+            <div class="campo">
+              <label for="perfil-nome">Nome *</label>
+              <input type="text" id="perfil-nome" required>
+            </div>
+            <div class="campo">
+              <label for="perfil-descricao">Descrição</label>
+              <input type="text" id="perfil-descricao">
+            </div>
+            <div class="campo campo-checkbox">
+              <label>
+                <input type="checkbox" id="perfil-ativo" checked>
+                Ativo
+              </label>
+            </div>
+            <div class="acoes-form">
+              <button type="submit">Salvar</button>
+              <button type="button" class="btn-secundario" onclick="navegarPara('perfis')">Cancelar</button>
             </div>
           </form>
         </section>
