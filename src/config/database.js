@@ -77,15 +77,35 @@ async function criarTabelas(pool) {
   `);
 
   await pool.request().query(`
+    IF OBJECT_ID('tipos_contato', 'U') IS NULL
+    BEGIN
+      CREATE TABLE tipos_contato (
+        id          INT          IDENTITY(1,1) PRIMARY KEY,
+        nome        VARCHAR(100) NOT NULL,
+        mascara     VARCHAR(50)  NULL,
+        placeholder VARCHAR(100) NULL,
+        validacao   VARCHAR(20)  NOT NULL DEFAULT 'texto',
+        ativo       BIT          NOT NULL DEFAULT 1
+      );
+      INSERT INTO tipos_contato (nome, mascara, placeholder, validacao) VALUES
+        ('Celular',     '(99) 99999-9999', '(99) 99999-9999', 'telefone'),
+        ('Trabalho',    '(99) 9999-9999',  '(99) 9999-9999',  'telefone'),
+        ('Residencial', '(99) 9999-9999',  '(99) 9999-9999',  'telefone'),
+        ('E-mail',      '',                'exemplo@email.com', 'email');
+    END
+  `);
+
+  await pool.request().query(`
     IF OBJECT_ID('contatos', 'U') IS NULL
     CREATE TABLE contatos (
       id          INT           PRIMARY KEY IDENTITY(1,1),
       cliente_id  INT           NOT NULL,
-      telefone    NVARCHAR(20)  NOT NULL,
-      tipo        NVARCHAR(15)  NOT NULL
-        CHECK (tipo IN ('celular', 'trabalho', 'residencial', 'email')),
+      telefone    NVARCHAR(255) NOT NULL,
+      tipo_id     INT           NOT NULL,
       CONSTRAINT FK_contatos_clientes
-        FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE,
+      CONSTRAINT FK_contatos_tipos
+        FOREIGN KEY (tipo_id) REFERENCES tipos_contato(id)
     );
   `);
 
@@ -96,11 +116,20 @@ async function criarTabelas(pool) {
       nome        NVARCHAR(255)  NOT NULL,
       email       NVARCHAR(255)  NOT NULL,
       senha_hash  NVARCHAR(255)  NOT NULL,
-      perfil_id   INT            NOT NULL,
       ativo       BIT            NOT NULL DEFAULT 1,
       criado_em   DATETIME       DEFAULT GETDATE(),
-      CONSTRAINT UQ_usuarios_email  UNIQUE (email),
-      CONSTRAINT FK_usuarios_perfis FOREIGN KEY (perfil_id) REFERENCES perfis(id)
+      CONSTRAINT UQ_usuarios_email UNIQUE (email)
+    );
+  `);
+
+  await pool.request().query(`
+    IF OBJECT_ID('usuario_perfis', 'U') IS NULL
+    CREATE TABLE usuario_perfis (
+      usuario_id INT NOT NULL,
+      perfil_id  INT NOT NULL,
+      CONSTRAINT PK_usuario_perfis PRIMARY KEY (usuario_id, perfil_id),
+      CONSTRAINT FK_up_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+      CONSTRAINT FK_up_perfil  FOREIGN KEY (perfil_id)  REFERENCES perfis(id)
     );
   `);
 }
@@ -113,22 +142,42 @@ async function seedAdmin(pool) {
     .input('email', sql.NVarChar, 'admin@admin.com')
     .query('SELECT id FROM usuarios WHERE email = @email');
 
+  const perfil   = await pool.request().query('SELECT id FROM perfis WHERE nivel = 1');
+  const perfilId = perfil.recordset[0]?.id || 1;
+
   if (resultado.recordset.length === 0) {
-    const perfil    = await pool.request()
-      .query('SELECT id FROM perfis WHERE nivel = 1');
-    const perfilId  = perfil.recordset[0]?.id || 1;
     const senhaHash = bcrypt.hashSync('admin123', 10);
 
-    await pool.request()
+    const ins = await pool.request()
       .input('nome',      sql.NVarChar, 'Administrador')
       .input('email',     sql.NVarChar, 'admin@admin.com')
       .input('senhaHash', sql.NVarChar, senhaHash)
-      .input('perfilId',  sql.Int,      perfilId)
       .query(`
-        INSERT INTO usuarios (nome, email, senha_hash, perfil_id)
-        VALUES (@nome, @email, @senhaHash, @perfilId)
+        INSERT INTO usuarios (nome, email, senha_hash)
+        OUTPUT INSERTED.id
+        VALUES (@nome, @email, @senhaHash)
       `);
+
+    const usuarioId = ins.recordset[0].id;
+    await pool.request()
+      .input('usuario_id', sql.Int, usuarioId)
+      .input('perfil_id',  sql.Int, perfilId)
+      .query('INSERT INTO usuario_perfis (usuario_id, perfil_id) VALUES (@usuario_id, @perfil_id)');
+
     console.log('Usuário admin criado — e-mail: admin@admin.com / senha: admin123');
+  } else {
+    // Garante que admin existente tem entrada em usuario_perfis (após migração)
+    const adminId   = resultado.recordset[0].id;
+    const semPerfil = await pool.request()
+      .input('id', sql.Int, adminId)
+      .query('SELECT 1 AS tem FROM usuario_perfis WHERE usuario_id = @id');
+
+    if (semPerfil.recordset.length === 0) {
+      await pool.request()
+        .input('usuario_id', sql.Int, adminId)
+        .input('perfil_id',  sql.Int, perfilId)
+        .query('INSERT INTO usuario_perfis (usuario_id, perfil_id) VALUES (@usuario_id, @perfil_id)');
+    }
   }
 }
 

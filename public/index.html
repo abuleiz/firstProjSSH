@@ -130,16 +130,14 @@
                   <div class="campos-inline">
                     <div class="campo">
                       <label for="tipo-contato">Tipo *</label>
-                      <select id="tipo-contato" required>
-                        <option value="celular">Celular</option>
-                        <option value="trabalho">Trabalho</option>
-                        <option value="residencial">Residencial</option>
-                        <option value="email">E-mail</option>
+                      <select id="tipo-contato" required onchange="atualizarCampoContato()">
+                        <!-- populado dinamicamente via /api/tipos-contato -->
                       </select>
                     </div>
                     <div class="campo">
                       <label for="telefone">Contato *</label>
-                      <input type="text" id="telefone" placeholder="(00) 00000-0000" required>
+                      <input type="text" id="telefone" placeholder="(99) 99999-9999" required oninput="mascararContato()">
+                      <span class="erro-campo oculto" id="erro-contato"></span>
                     </div>
                     <div class="campo campo-botao">
                       <button type="submit" id="btn-salvar-contato">Salvar</button>
@@ -202,17 +200,52 @@
               <label for="usuario-senha">Senha <span id="senha-hint" class="label-hint"></span></label>
               <input type="password" id="usuario-senha">
             </div>
-            <div class="campo">
-              <label for="usuario-perfil">Perfil *</label>
-              <select id="usuario-perfil" required>
-                <!-- populado dinamicamente via /api/perfis -->
-              </select>
-            </div>
             <div class="acoes-form">
               <button type="submit">Salvar</button>
               <button type="button" class="btn-secundario" onclick="navegarPara('usuarios')">Cancelar</button>
             </div>
           </form>
+
+          <!-- Seção de perfis inline (abaixo dos dados do usuário) -->
+          <div id="secao-perfis-usuario-inline">
+
+            <div id="msg-salvar-usuario-primeiro" class="aviso-info oculto">
+              <p>Salve o usuário primeiro para adicionar perfis.</p>
+            </div>
+
+            <div id="area-perfis-usuario" class="oculto">
+              <div class="cabecalho-secao contatos-cabecalho">
+                <h3>Perfis</h3>
+                <button type="button" onclick="mostrarFormAdicionarPerfil()">+ Adicionar Perfil</button>
+              </div>
+
+              <div id="form-perfil-usuario-wrapper" class="oculto">
+                <p class="form-contato-titulo">Adicionar Perfil</p>
+                <div class="campos-inline">
+                  <div class="campo">
+                    <label for="select-perfil-usuario">Perfil *</label>
+                    <select id="select-perfil-usuario"></select>
+                  </div>
+                  <div class="campo campo-botao">
+                    <button type="button" onclick="adicionarPerfilUsuario()">Adicionar</button>
+                    <button type="button" class="btn-secundario" onclick="cancelarFormAdicionarPerfil()">Cancelar</button>
+                  </div>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Perfil</th>
+                    <th>Nível</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="corpo-perfis-usuario"></tbody>
+              </table>
+            </div>
+
+          </div>
         </section>
 
         <!-- Lista de menus (admin) -->
@@ -279,6 +312,65 @@
             <div class="acoes-form">
               <button type="submit">Salvar</button>
               <button type="button" class="btn-secundario" onclick="navegarPara('menus')">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Lista de tipos de contato (admin) -->
+        <section id="secao-tipos-contato" class="oculto">
+          <div class="cabecalho-secao">
+            <h2>Tipos de Contato</h2>
+            <button onclick="mostrarFormularioTipoContato()">+ Novo Tipo de Contato</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Máscara</th>
+                <th>Placeholder</th>
+                <th>Validação</th>
+                <th>Ativo</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-tipos-contato"></tbody>
+          </table>
+        </section>
+
+        <!-- Formulário de tipo de contato (admin) -->
+        <section id="secao-form-tipos-contato" class="oculto">
+          <h2 id="titulo-form-tipo-contato">Novo Tipo de Contato</h2>
+          <form id="form-tipo-contato" onsubmit="salvarTipoContato(event)">
+            <input type="hidden" id="tipo-contato-id">
+            <div class="campo">
+              <label for="tipo-contato-nome">Nome *</label>
+              <input type="text" id="tipo-contato-nome" required>
+            </div>
+            <div class="campo">
+              <label for="tipo-contato-mascara">Máscara <span class="label-hint">(ex: (99) 99999-9999 — vazio para e-mail)</span></label>
+              <input type="text" id="tipo-contato-mascara" placeholder="(99) 99999-9999">
+            </div>
+            <div class="campo">
+              <label for="tipo-contato-placeholder">Placeholder</label>
+              <input type="text" id="tipo-contato-placeholder" placeholder="ex: (99) 99999-9999">
+            </div>
+            <div class="campo">
+              <label for="tipo-contato-validacao">Validação *</label>
+              <select id="tipo-contato-validacao" required>
+                <option value="telefone">Telefone — valida dígitos numéricos</option>
+                <option value="email">E-mail — valida formato de e-mail</option>
+                <option value="texto">Texto — aceita qualquer valor</option>
+              </select>
+            </div>
+            <div class="campo campo-checkbox">
+              <label>
+                <input type="checkbox" id="tipo-contato-ativo" checked>
+                Ativo
+              </label>
+            </div>
+            <div class="acoes-form">
+              <button type="submit">Salvar</button>
+              <button type="button" class="btn-secundario" onclick="navegarPara('tipos-contato')">Cancelar</button>
             </div>
           </form>
         </section>

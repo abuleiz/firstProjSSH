@@ -25,7 +25,8 @@ router.get('/todos', requireAdmin, async (req, res) => {
         SELECT p.id, p.nome, p.descricao, p.ativo, p.nivel,
                COUNT(CASE WHEN u.ativo = 1 THEN 1 END) AS usuarios_ativos
         FROM perfis p
-        LEFT JOIN usuarios u ON u.perfil_id = p.id
+        LEFT JOIN usuario_perfis up ON up.perfil_id = p.id
+        LEFT JOIN usuarios u ON u.id = up.usuario_id
         GROUP BY p.id, p.nome, p.descricao, p.ativo, p.nivel
         ORDER BY p.nivel
       `);
@@ -119,7 +120,12 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
     if (perfil.ativo) {
       const resUsu = await pool.request()
         .input('id', sql.Int, req.params.id)
-        .query('SELECT COUNT(*) AS total FROM usuarios WHERE perfil_id = @id AND ativo = 1');
+        .query(`
+          SELECT COUNT(*) AS total
+          FROM usuario_perfis up
+          JOIN usuarios u ON u.id = up.usuario_id
+          WHERE up.perfil_id = @id AND u.ativo = 1
+        `);
       const total = resUsu.recordset[0].total;
       if (total > 0) {
         return res.status(400).json({

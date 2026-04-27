@@ -6,6 +6,7 @@ const path     = require('path');
 const { poolPromise }     = require('./src/config/database');
 const clientesRouter      = require('./routes/clientes');
 const contatosRouter      = require('./routes/contatos');
+const tiposContatoRouter  = require('./routes/tipos-contato');
 const authRouter          = require('./routes/auth');
 const usuariosRouter      = require('./routes/usuarios');
 const menusRouter         = require('./routes/menus');
@@ -33,8 +34,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRouter);
 
 // Rotas protegidas
-app.use('/api/clientes', requireAuth, clientesRouter);
-app.use('/api/contatos', requireAuth, contatosRouter);
+app.use('/api/clientes',       requireAuth, clientesRouter);
+app.use('/api/contatos',       requireAuth, contatosRouter);
+app.use('/api/tipos-contato',  tiposContatoRouter);
 app.use('/api/usuarios', usuariosRouter); // requireAdmin está dentro do router
 app.use('/api/menus',   menusRouter);
 app.use('/api/perfis',  perfisRouter);

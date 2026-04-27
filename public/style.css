@@ -115,6 +115,15 @@ body {
   font-size: 0.85rem;
 }
 
+.submenu .submenu {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.submenu .submenu .menu-item {
+  padding-left: 3.8rem;
+  font-size: 0.82rem;
+}
+
 /* Área principal (header + main) */
 .area-principal {
   flex: 1;

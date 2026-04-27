@@ -17,9 +17,16 @@ router.post('/login', async (req, res) => {
       .input('email', sql.NVarChar, email)
       .query(`
         SELECT u.id, u.nome, u.email, u.senha_hash, u.ativo,
-               u.perfil_id, p.nome AS perfil_nome, p.nivel AS perfil_nivel
+          (SELECT MIN(p.nivel)
+           FROM usuario_perfis up JOIN perfis p ON p.id = up.perfil_id
+           WHERE up.usuario_id = u.id) AS perfil_nivel,
+          (SELECT TOP 1 p.id
+           FROM usuario_perfis up JOIN perfis p ON p.id = up.perfil_id
+           WHERE up.usuario_id = u.id ORDER BY p.nivel ASC) AS perfil_id,
+          (SELECT STRING_AGG(p.nome, ', ')
+           FROM usuario_perfis up JOIN perfis p ON p.id = up.perfil_id
+           WHERE up.usuario_id = u.id) AS perfil_nome
         FROM usuarios u
-        JOIN perfis p ON u.perfil_id = p.id
         WHERE u.email = @email AND u.ativo = 1
       `);
 
@@ -34,17 +41,19 @@ router.post('/login', async (req, res) => {
     req.session.email        = usuario.email;
     req.session.perfil_id    = usuario.perfil_id;
     req.session.perfil_nivel = usuario.perfil_nivel;
+    req.session.perfil_nome  = usuario.perfil_nome;
 
     // Campo derivado para compatibilidade com código existente do frontend
     const nivel = usuario.perfil_nivel === 1 ? 'admin' : 'usuario';
     req.session.nivel = nivel;
 
     res.json({
-      id:          usuario.id,
-      nome:        usuario.nome,
-      email:       usuario.email,
-      perfil_id:   usuario.perfil_id,
-      perfil_nome: usuario.perfil_nome,
+      id:           usuario.id,
+      nome:         usuario.nome,
+      email:        usuario.email,
+      perfil_id:    usuario.perfil_id,
+      perfil_nome:  usuario.perfil_nome,
+      perfil_nivel: usuario.perfil_nivel,
       nivel,
     });
   } catch (err) {
@@ -66,10 +75,11 @@ router.get('/me', (req, res) => {
   }
   const nivel = req.session.perfil_nivel === 1 ? 'admin' : 'usuario';
   res.json({
-    id:          req.session.userId,
-    nome:        req.session.nome,
-    email:       req.session.email,
-    perfil_id:   req.session.perfil_id,
+    id:           req.session.userId,
+    nome:         req.session.nome,
+    email:        req.session.email,
+    perfil_id:    req.session.perfil_id,
+    perfil_nome:  req.session.perfil_nome,
     perfil_nivel: req.session.perfil_nivel,
     nivel,
   });

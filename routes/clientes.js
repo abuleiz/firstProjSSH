@@ -28,7 +28,13 @@ router.get('/:id', async (req, res) => {
 
     const resContatos = await pool.request()
       .input('id', sql.Int, req.params.id)
-      .query('SELECT * FROM contatos WHERE cliente_id = @id');
+      .query(`
+        SELECT c.id, c.cliente_id, c.telefone, c.tipo_id, tc.nome AS tipo_nome
+        FROM contatos c
+        JOIN tipos_contato tc ON tc.id = c.tipo_id
+        WHERE c.cliente_id = @id
+        ORDER BY c.id
+      `);
 
     cliente.contatos = resContatos.recordset;
     res.json(cliente);
