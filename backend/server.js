@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express  = require('express');
 const session  = require('express-session');
+const cors     = require('cors');
 const path     = require('path');
 
 const { poolPromise }     = require('./src/config/database');
@@ -19,7 +20,12 @@ const veiculosRouter      = require('./routes/veiculos');
 const { requireAuth }     = require('./middleware/auth');
 
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
+
+app.use(cors({
+  origin:      process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
 
 app.use(express.json());
 
@@ -28,33 +34,28 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    maxAge:   8 * 60 * 60 * 1000, // 8 horas
+    maxAge:   8 * 60 * 60 * 1000,
     httpOnly: true,
+    sameSite: 'lax',
   },
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Rota pública
 app.use('/api/auth', authRouter);
 
-// Rotas protegidas
-app.use('/api/clientes',       requireAuth, clientesRouter);
-app.use('/api/contatos',       requireAuth, contatosRouter);
-app.use('/api/tipos-contato',  tiposContatoRouter);
-app.use('/api/usuarios', usuariosRouter); // requireAdmin está dentro do router
-app.use('/api/menus',    menusRouter);
-app.use('/api/perfis',   perfisRouter);
-app.use('/api/marcas',   marcasRouter);
-app.use('/api/modelos',  modelosRouter);
-app.use('/api/versoes',  versoesRouter);
-app.use('/api/cores',    coresRouter);
-app.use('/api/veiculos', requireAuth, veiculosRouter);
+app.use('/api/clientes',      requireAuth, clientesRouter);
+app.use('/api/contatos',      requireAuth, contatosRouter);
+app.use('/api/tipos-contato', tiposContatoRouter);
+app.use('/api/usuarios',      usuariosRouter);
+app.use('/api/menus',         menusRouter);
+app.use('/api/perfis',        perfisRouter);
+app.use('/api/marcas',        marcasRouter);
+app.use('/api/modelos',       modelosRouter);
+app.use('/api/versoes',       versoesRouter);
+app.use('/api/cores',         coresRouter);
+app.use('/api/veiculos',      requireAuth, veiculosRouter);
 
-// Aguarda a conexão com o banco antes de abrir a porta
-poolPromise
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Servidor rodando em http://localhost:${PORT}`);
-    });
+poolPromise.then(() => {
+  app.listen(PORT, () => {
+    console.log(`Backend rodando em http://localhost:${PORT}`);
   });
+});

@@ -15,7 +15,10 @@
       "Bash(npm uninstall *)",
       "Bash(node --check src/config/database.js)",
       "Bash(node --check routes/clientes.js)",
-      "Bash(node --check routes/contatos.js)"
+      "Bash(node --check routes/contatos.js)",
+      "Bash(grep -E \"\\\\.css$|\\\\.html$|\\\\.js$\")",
+      "Bash(npm create *)",
+      "Bash(npm run *)"
     ]
   }
 }
